@@ -1,0 +1,81 @@
+#control-bar, #height-bar {
+    display: flex;
+    flex-basis: auto;
+    height: 65px;
+    width: 610px;
+    padding-left: 20px;
+    padding-right: 20px;
+    justify-content: space-between;
+    background-color: #c0c0c0;
+    border: 5px inset #c6c6c6;
+    user-select: none;
+}
+
+#size-bar {
+    height: 40px;
+}
+
+#timer-count, #flag-counter, #reset-button {
+    font-size: 30px;
+    font-weight: 400;
+    height: 40px;
+    margin-top: auto;
+    margin-bottom: auto;
+    color: red;
+    line-height: 1.2;
+}
+
+#timer-count, #flag-counter {
+    background-color: black;
+    font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-weight: 900;
+    font-size: 40px;
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-bottom: 2px;
+    padding-top: 1px;
+    border: 2px inset #c6c6c6;
+    line-height: .9;
+}
+
+#reset-button {
+    height: 50px;
+    width: 50px;
+    border: 5px outset whiteSmoke;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+#reset-button:active {
+    border: 5px inset whiteSmoke;
+    font-size: 28px;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    width: 600px;
+}
+
+.minesweeper-grid {
+    width: 600px;
+    border: 5px inset #c6c6c6;
+    user-select: none;
+}
+
+.cell-hidden {
+    border: 5px outset whiteSmoke;
+    background-color: #c6c6c6;
+}
+
+.cell, .clickable:active{
+    background-color: #c6c6c6;
+    border: 2px solid #808080;
+}
+
+.cell, .cell-hidden {
+    text-align: center;
+    font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-weight: 900;
+    line-height: 1;
+}
