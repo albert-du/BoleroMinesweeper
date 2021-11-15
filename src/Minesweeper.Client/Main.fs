@@ -44,7 +44,7 @@ let update message model =
     | Reset(w, h, m) ->
         match MinesweeperGrid.verify w h m with
         | Ok () -> 
-            { model with Error = None; Width = w; Height = h; Mines = m; Grid = ValueNone; GameStatus = ValueNone }, Cmd.none
+            { model with Error = None; Width = w; Height = h; Mines = m; Grid = ValueNone; GameStatus = ValueNone; Time = 0 }, Cmd.none
         | Error message -> 
             { model with Grid = ValueNone; Error = Some message; GameStatus = ValueNone}, Cmd.none
     
