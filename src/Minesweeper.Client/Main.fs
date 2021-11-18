@@ -1,4 +1,4 @@
-﻿module Minesweeper.Client.Main
+module Minesweeper.Client.Main
 
 open System
 open Elmish
@@ -97,16 +97,16 @@ let controlBar model reset =
 
 let sizeBar model reset =
     div [ attr.id "size-bar" ] [
-        select [] [
-            option [ on.click (fun _ -> reset (9,9,10) ) ] [
-                text "Easy"
-            ]
-            option [ on.click (fun _ -> reset (16,16,40) ) ] [
-                text "Medium"
-            ]
-            option [ on.click (fun _ -> reset (30,16,99) ) ] [
-                text "Hard"
-            ]
+        select [ 
+            on.change <| fun x ->
+                match string x.Value with 
+                | "Easy" -> reset (9,9,10)
+                | "Medium" -> reset (16,16,40) 
+                | _ -> reset (30,16,99) 
+        ] [
+            option [] [ text "Easy" ]
+            option [] [ text "Medium" ]
+            option [] [ text "Hard" ]
         ]
     ]
 
