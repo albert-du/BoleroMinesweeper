@@ -1,6 +1,7 @@
 module Minesweeper.Client.Main
 
 open System
+open System.Timers
 open Elmish
 open Bolero
 open Bolero.Html
@@ -62,6 +63,7 @@ let update message model =
             { model with Grid = ValueSome result.Grid; GameStatus = result.Result }, Cmd.none
 
         | ValueNone -> 
+            printfn "Generating grid at %i,%i" x y
             // Generate the grid
             match MinesweeperGrid.generate (model.Random.Next 10000) model.Width model.Height model.Mines x y with
             | Ok grid -> { model with Grid = ValueSome grid }, Uncover(x,y) |> Cmd.ofMsg // Call Uncover again
@@ -76,39 +78,41 @@ let update message model =
 let controlBar model reset =
     let winFaces = [|"😀"; "😅"; "😂"; "🥳"; "😎"|]
     let lostFaces = [|"😱"; "🤕"; "🥵"; "🥶"; "😨"; "💀"|]
-    div [ attr.id "control-bar" ] [
-        div [ attr.id "flag-counter" ] [ 
-            textf "%03i" (model.Mines - ValueOption.mapDefault (fun x -> x.Flagged) 0 model.Grid )
-        ]
-        div [ 
-            attr.id "reset-button" 
+    div {
+        attr.id "control-bar"
+        div {
+            attr.id "flag-counter"
+            $"%03i{model.Mines - ValueOption.mapDefault (fun x -> x.Flagged) 0 model.Grid}"
+        }
+        div {
+            attr.id "reset-button"
             on.click (ignore >> reset)
-        ] [
+
             match model.GameStatus with
             | ValueNone -> "🙂"
-            | ValueSome Win -> winFaces.[model.Time % winFaces.Length]
-            | ValueSome Loss -> lostFaces.[model.Time % lostFaces.Length]
-            |> text
-        ]
-        div [ attr.id "timer-count" ] [ 
-            textf "%03i" model.Time
-        ]
-    ]
+            | ValueSome Win -> winFaces[model.Time % winFaces.Length]
+            | ValueSome Loss -> lostFaces[model.Time % lostFaces.Length]
+        }
+        div {
+            attr.id "timer-count"
+            $"%03i{model.Time}"
+        }
+    }
 
 let sizeBar model reset =
-    div [ attr.id "size-bar" ] [
-        select [ 
-            on.change <| fun x ->
-                match string x.Value with 
+    div {
+        attr.id "size-bar"
+        select {
+            on.change (_.Value >> string >> function
                 | "Easy" -> reset (9,9,10)
                 | "Medium" -> reset (16,16,40) 
-                | _ -> reset (30,16,99) 
-        ] [
-            option [] [ text "Easy" ]
-            option [] [ text "Medium" ]
-            option [] [ text "Hard" ]
-        ]
-    ]
+                | "Hard" | _ -> reset (30,16,99) 
+            )
+            option { "Easy" }
+            option { "Medium" }
+            option { "Hard" }
+        }
+    }
 
 let nearColor = function
     | 1 -> "#0000ff"
@@ -121,9 +125,12 @@ let nearColor = function
     | _ -> "#808080"
 
 let loadedCell (status: GameResult voption) (size: int) cell xy dispatch =
-    th [
-        attr.width size; attr.height size;
-        attr.classes [
+    th {
+        attr.width size
+
+        attr.height size
+
+        String.concat " " [
             match cell.Status with 
             | Hidden false when status.IsNone -> "cell-hidden"; "clickable"
             | Hidden _ -> "cell-hidden"; 
@@ -132,77 +139,88 @@ let loadedCell (status: GameResult voption) (size: int) cell xy dispatch =
             $"DEBUG-{cell.Type}".Replace(' ','-')
             #endif
         ]
+        |> attr.``class``
+
         if status.IsNone then
             on.click (fun _ -> Uncover xy |> dispatch )
             on.contextmenu (fun _ -> Flag xy |> dispatch )
-    ] [
-        match status with 
+        else
+            // The game has ended
+            on.click ignore
+            on.contextmenu ignore
+
+        match status with
         | ValueSome Loss ->
             match cell.Type with 
             | Mine ->
-                p [ attr.style $"font-size:{float size * 0.6}px" ] [ text "💣" ]
+                p { attr.style $"font-size:{float size * 0.6}px"; "💣"}
             | Near x when cell.Status = Uncovered ->
-                p [ attr.style $"color:{nearColor x}; font-size:{float size * 0.8}px" ] [ textf "%i" x ]
+                p { attr.style $"color:{nearColor x}; font-size:{float size * 0.8}px"; string x }
             | _ when cell.Status = Hidden true ->
-                p [ attr.style $"font-size:{float size * 0.55}px" ] [ text "🚩" ]
+                p { attr.style $"font-size:{float size * 0.55}px"; "🚩" }
             | _ -> ()
         | _ ->
             // The game has not ended
             match cell.Status with 
             | Uncovered ->
                 match cell.Type with
-                | Near x ->  p [ attr.style $"color:{nearColor x}; font-size:{float size * 0.8}px" ] [ textf "%i" x ]
+                | Near x ->  p { attr.style $"color:{nearColor x}; font-size:{float size * 0.8}px"; string x }
                 | _ -> ()
             | Hidden true -> 
-                p [ attr.style $"font-size:{float size * 0.55}px" ] [ text "🚩" ]
+                p { attr.style $"font-size:{float size * 0.55}px"; "🚩" }
             | Hidden _ -> ()
-
-    ]
+        
+    }
 
 let unloadedCell size xy dispatch = 
-    th [
+    th {
         attr.width size; attr.height size;
-        attr.classes ["cell-hidden"; "clickable"]
+        attr.``class`` "cell-hidden clickable"
         on.click (fun _ -> Uncover xy |> dispatch)
-    ] []
+    }
 
 let grid (model: Model) dispatch =
     let size = 600 / model.Width
 
-    table [
-        attr.classes ["minesweeper-grid"]; 
+    table {
+        attr.``class`` "minesweeper-grid" 
         attr.width 600 
-    ] [
+
         let cell = 
             match model.Grid with
             | ValueSome g ->
                 fun x y -> loadedCell model.GameStatus size g.Cells.[x,y] struct(x, y) dispatch
             | ValueNone -> 
                 fun x y -> unloadedCell size struct (x, y) dispatch
-        forEach [0 .. model.Height - 1] <| fun row ->
-            tr [attr.``class`` "row" ] [
-                forEach [0 .. model.Width - 1] <| fun col ->
+        
+        for row in 0 .. model.Height - 1 do 
+            tr {
+                attr.``class`` "row"
+                for col in 0 .. model.Width - 1 do
                     cell col row
-            ]
-    ]
+            }
+    }
 
 let view model dispatch =
-    div [attr.id "game"] [
+    div {
+        attr.id "game"
         controlBar model (fun () -> Reset(model.Width,model.Height,model.Mines) |> dispatch)
         grid model dispatch
-        sizeBar model  (Reset >> dispatch)
-    ]
+        sizeBar model (Reset >> dispatch)
+    }
 
 type MyApp() =
     inherit ProgramComponent<Model, Message>()
     
-    let t = new System.Timers.Timer(Interval = 1000.)
-    do t.Start()
+    let timer (model: Model) : (SubId * Subscribe<Message>) list =
+        let t = new Timer(Interval = 1000.)
+        t.Start()
 
-    let timer _ =
-        let sub dispatch = 
+        let sub dispatch : IDisposable =
             t.Elapsed.Add(fun _ -> dispatch Tick)
-        Cmd.ofSub sub
+            {new IDisposable with member _.Dispose() = t.Dispose()}
+
+        [ ["timer"], sub ]
 
     override _.Program =
         Program.mkProgram (fun _ -> Random() |> init) update view
